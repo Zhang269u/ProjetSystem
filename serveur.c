@@ -71,7 +71,7 @@ int LibreNDossier(long nDossier) {
     return 1;
 }
 
-    long generateNDossier(int place) {
+long generateNDossier(int place) {
     long NDossier;
     do {
         srand(time(NULL));
@@ -98,6 +98,35 @@ int dispo(int i) {
         fclose(fichier);
     }
     return 1;
+}
+
+int dispolist(int i) {
+    FILE* fichier;
+    fichier = fopen("Reservation.txt", "r");
+    if (fichier != NULL) {
+        char chaine[MAX_BUFFER];
+        int place;
+        while (fgets(chaine, MAX_BUFFER, fichier) != NULL) {
+            sscanf(chaine, "%d", &place);
+            if (i == place)
+                return 0;
+        }
+        fclose(fichier);
+    }
+    return 1;
+}
+
+void ListReserv(int fdSocketCommunication) {
+    char chaine[MAX_BUFFER] = "D=Disponible I=Indisponible\n";
+    for (int i = 0; i < MAX_RESERV; i++) {
+        char* chaine2;
+        if(!dispolist(i))
+            sprintf(chaine2, "%2d : I\n", i);
+        else
+            sprintf(chaine2, "%2d : D\n", i);
+        strcat(chaine, chaine2);
+    }
+    send(fdSocketCommunication, (const char*)chaine, strlen(chaine), 0);
 }
 
 void AjoutReserv(int place, char* nom, char* prenom) {
@@ -218,7 +247,9 @@ int main(int argc, char const* argv[]) {
                     if (testAide(tampon))
                         send(fdSocketCommunication, HELPREP, strlen(HELPREP), 0);
                     else if (testReserv(tampon))
-                        Reserver(fdSocketCommunication,tampon);
+                        Reserver(fdSocketCommunication, tampon);
+                    else if (testList(tampon))
+                        ListReserv(fdSocketCommunication);
                     else if (testQuitter(tampon))
                         break; // on quitte la boucle
                     else
