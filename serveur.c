@@ -75,7 +75,7 @@ long generateNDossier(int place) {
     long NDossier;
     do {
         srand(time(NULL));
-        NDossier =((rand()%(MAX_NUMDOSS-MIN_NUMDOSS)) + MIN_NUMDOSS );
+        NDossier = ((rand() % (MAX_NUMDOSS - MIN_NUMDOSS)) + MIN_NUMDOSS);
     } while (!(LibreNDossier(NDossier)));
 
     return NDossier;
@@ -84,14 +84,14 @@ long generateNDossier(int place) {
 int dispo(int i) {
     FILE* fichier;
     fichier = fopen("Reservation.txt", "r");
-    if (fichier != NULL){
+    if (fichier != NULL) {
         char chaine[MAX_BUFFER];
         int place;
         char* nom;
         char* prenom;
         long NDossier;
         while (fgets(chaine, MAX_BUFFER, fichier) != NULL) {
-            sscanf(chaine, "%d %s %s %ld", &place, nom, prenom,&NDossier);
+            sscanf(chaine, "%d %s %s %ld", &place, nom, prenom, &NDossier);
             if (i == place)
                 return 0;
         }
@@ -120,7 +120,7 @@ void ListReserv(int fdSocketCommunication) {
     char chaine[MAX_BUFFER] = "D=Disponible I=Indisponible\n";
     for (int i = 0; i < MAX_RESERV; i++) {
         char* chaine2;
-        if(!dispolist(i))
+        if (!dispolist(i))
             sprintf(chaine2, "%2d : I\n", i);
         else
             sprintf(chaine2, "%2d : D\n", i);
@@ -134,48 +134,75 @@ void AjoutReserv(int place, char* nom, char* prenom) {
     fichier = fopen("Reservation.txt", "a");
     if (fichier != NULL) {
         char* chaine;
-        sprintf(chaine, "%d %s %s %ld\n", place, nom, prenom,generateNDossier(place));
+        sprintf(chaine, "%d %s %s %ld\n", place, nom, prenom, generateNDossier(place));
         fputs(chaine, fichier);
         fclose(fichier);
     }
 }
 
-void Reserver(int fdSocketCommunication,char* tampon) {
-   int nbRecu;
-   int place;
-   send(fdSocketCommunication,DPLACE, strlen(DPLACE), 0);
-   nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
-   if (nbRecu > 0) {
-       tampon[nbRecu] = 0;
-       place = atoi(tampon);
-       if (place > MAX_RESERV || place < 0){
-           send(fdSocketCommunication, NPLACE, strlen(NPLACE), 0);
-       }
-       else {
-           if(!dispo(place))
-               send(fdSocketCommunication, INDISPLACE, strlen(INDISPLACE), 0);
-           else {
-               send(fdSocketCommunication, DNOM, strlen(DNOM), 0);
-               nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
-               if (nbRecu > 0) {
-                   tampon[nbRecu] = 0;
-                   char* nom = strdup(tampon);
-                   printf("%s\n", nom);
-                   send(fdSocketCommunication, DPRENOM, strlen(DPRENOM), 0);
-                   nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
-                   if (nbRecu > 0) {
-                       tampon[nbRecu] = 0;
-                       char* prenom = strdup(tampon);
-                       printf("%s\n", prenom);
-                       AjoutReserv(place, nom, prenom);
-                       send(fdSocketCommunication, REPRESERV, strlen(REPRESERV), 0);
-                   }
-               }
-           }
-       }
-   }
+void Reserver(int fdSocketCommunication, char* tampon) {
+    int nbRecu;
+    int place;
+    send(fdSocketCommunication, DPLACE, strlen(DPLACE), 0);
+    nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
+    if (nbRecu > 0) {
+        tampon[nbRecu] = 0;
+        place = atoi(tampon);
+        if (place > MAX_RESERV || place < 0) {
+            send(fdSocketCommunication, NPLACE, strlen(NPLACE), 0);
+        }
+        else {
+            if (!dispo(place))
+                send(fdSocketCommunication, INDISPLACE, strlen(INDISPLACE), 0);
+            else {
+                send(fdSocketCommunication, DNOM, strlen(DNOM), 0);
+                nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
+                if (nbRecu > 0) {
+                    tampon[nbRecu] = 0;
+                    char* nom = strdup(tampon);
+                    printf("%s\n", nom);
+                    send(fdSocketCommunication, DPRENOM, strlen(DPRENOM), 0);
+                    nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
+                    if (nbRecu > 0) {
+                        tampon[nbRecu] = 0;
+                        char* prenom = strdup(tampon);
+                        printf("%s\n", prenom);
+                        AjoutReserv(place, nom, prenom);
+                        send(fdSocketCommunication, REPRESERV, strlen(REPRESERV), 0);
+                    }
+                }
+            }
+        }
+    }
 }
 
+void AnnulerReserv(int i) {
+    FILE* fichier;
+    fichier = fopen("NewReservation.txt", "a");
+    if (fichier != NULL) {
+        char chaine[MAX_BUFFER];
+        char* nomR;
+        char* prenomR;
+        long NdossierR;
+        int place;
+        FILE* fichier2;
+        fichier2 = fopen("Reservation.txt", "r");
+        if (fichier2 != NULL) {
+            while (fgets(chaine, MAX_BUFFER, fichier2) != NULL) {
+                sscanf(chaine, "%d %s %s %ld", &place, nomR, prenomR, &NdossierR);
+                if (i != place) {
+                    fputs(chaine, fichier);
+                }
+            }
+            fclose(fichier2);
+        }
+        fclose(fichier);
+        int removeR = remove("Reservation.txt");
+        if (removeR == 0) {
+            int renameR = rename("NewReservation.txt", "Reservation.txt");
+        }
+    }
+}
 
 int main(int argc, char const* argv[]) {
     int fdSocketAttente;
@@ -250,6 +277,12 @@ int main(int argc, char const* argv[]) {
                         Reserver(fdSocketCommunication, tampon);
                     else if (testList(tampon))
                         ListReserv(fdSocketCommunication);
+                    else if (testAnnul(tampon)) {
+                        send(fdSocketCommunication, "Quel reservation ?", strlen("Quel reservation ?"), 0);
+                        nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
+                        AnnulerReserv(atoi(tampon));
+                        send(fdSocketCommunication, "Annulation finie", strlen("Annulation finie"), 0);
+                    }
                     else if (testQuitter(tampon))
                         break; // on quitte la boucle
                     else
