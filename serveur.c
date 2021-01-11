@@ -23,13 +23,13 @@ const char* LIST = "list";
 const char* RESERV = "reserv";
 const char* ANNUL = "annul";
 const char* EXIT = "exit";
-const char* ERROR = "Aucune correspondance taper 'help' pour obtenir l'aide";
-const char* DPLACE = "Quel place souhaiter-vous ?";
-const char* NPLACE = "Place non reconnu,\nRetour à l'accueil";
-const char* INDISPLACE = "Place indisponible,\nRetour à l'accueil";
+const char* ERROR = "Aucune correspondance, taper 'help' pour obtenir l'aide";
+const char* DPLACE = "Quelle place souhaitez-vous ?";
+const char* NPLACE = "Place non reconnue,\nRetour à l'accueil";
+const char* INDISPLACE = "La place indisponible,\nRetour à l'accueil";
 const char* DNOM = "Quel est votre nom ?";
 const char* DPRENOM = "Quel est votre prénom ?";
-const char* REPRESERV = "Réservation confirmé";
+const char* REPRESERV = "Votre réservation est confirmée";
 
 
 int testQuitter(char tampon[]) {
@@ -232,12 +232,12 @@ int main(int argc, char const* argv[]) {
     coordonneesServeur.sin_port = htons(PORT);
 
     if (bind(fdSocketAttente, (struct sockaddr*)&coordonneesServeur, sizeof(coordonneesServeur)) == -1) {
-        printf("erreur de bind\n");
+        printf("Erreur de bind\n");
         exit(EXIT_FAILURE);
     }
 
     if (listen(fdSocketAttente, 5) == -1) {
-        printf("erreur de listen\n");
+        printf("Erreur de listen\n");
         exit(EXIT_FAILURE);
     }
 
@@ -245,10 +245,10 @@ int main(int argc, char const* argv[]) {
 
     int nbClients = 0;
 
-    while (nbClients < MAX_CLIENTS) {
+    while (1) {
         if ((fdSocketCommunication = accept(fdSocketAttente, (struct sockaddr*)&coordonneesAppelant,
             &tailleCoord)) == -1) {
-            printf("erreur de accept\n");
+            printf("Erreur de accept\n");
             exit(EXIT_FAILURE);
         }
 
@@ -267,7 +267,7 @@ int main(int argc, char const* argv[]) {
                 if (nbRecu > 0) {
                     tampon[nbRecu] = 0;
 
-                    printf("Recu de %s:%d : %s\n",
+                    printf("Reçu de %s:%d : %s\n",
                         inet_ntoa(coordonneesAppelant.sin_addr),
                         ntohs(coordonneesAppelant.sin_port),
                         tampon);
@@ -278,7 +278,7 @@ int main(int argc, char const* argv[]) {
                     else if (testList(tampon))
                         ListReserv(fdSocketCommunication);
                     else if (testAnnul(tampon)) {
-                        send(fdSocketCommunication, "Quel reservation ?", strlen("Quel reservation ?"), 0);
+                        send(fdSocketCommunication, "Quelle reservation ?", strlen("Quelle reservation ?"), 0);
                         nbRecu = recv(fdSocketCommunication, tampon, MAX_BUFFER, 0);
                         AnnulerReserv(atoi(tampon));
                         send(fdSocketCommunication, "Annulation finie", strlen("Annulation finie"), 0);
